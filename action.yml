@@ -59,6 +59,7 @@ runs:
             if [[ $VERBOSE == true ]]; then
                 echo "STAGE_NAME: ${STAGE_NAME}"
                 echo "STAGE_PATH: ${STAGE_PATH}"
+                echo "JOBSTATUSJSONWFAPI: ${JOBSTATUSJSONWFAPI}"
                 echo "STAGE_JSON: ${STAGE_JSON}"
             fi
 
