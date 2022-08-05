@@ -60,12 +60,12 @@ runs:
                 echo "STAGE_PATH: ${STAGE_PATH}"
             fi
 
-            if [ ! -z "${STAGE_PATH}"]; then 
-              STAGE_JSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_PATH}")
-              STAGE_EXISTS=true
-            else 
+            if [[ -z "${STAGE_PATH// }" ]]; then 
               STAGE_JSON=""
               STAGE_EXISTS=false
+            else 
+              STAGE_JSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_PATH}")
+              STAGE_EXISTS=true
             fi
 
             regex="\"building\"\s*:\s*([a-z]+).*?\"result\"\s*:\s*\"?([a-zA-Z]+)\"?."
@@ -74,6 +74,7 @@ runs:
                   echo "Job Status"
                   echo "building: " ${BASH_REMATCH[1]} ;
                   echo "result: " ${BASH_REMATCH[2]} ;
+                  echo "STAGE_EXISTS ${STAGE_EXISTS}"
                 fi
                 BUILDING=${BASH_REMATCH[1]} ;
                 RESULT=${BASH_REMATCH[2]} ;
