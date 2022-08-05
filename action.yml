@@ -1,8 +1,11 @@
 name: 'Listen to Jenkins Job Stage and Return Result'
 description: 'listen to specific jenkins job stage and return result'
 inputs:
-  build-url:  # URL of the jenkins job build
-    description: 'URL of the jenkins job build'
+  build-url:  # full URL of the jenkins job build
+    description: 'full URL of the jenkins job build'
+    required: true
+  jenkins-url:  # URL of the jenkins server
+    description: 'URL of the Jenkins server'
     required: true
   stage-name: # The name of the jenkins stage to listen
     description: 'The name of the jenkins stage to listen'
@@ -26,6 +29,7 @@ runs:
       run: |
         #Parameters
         BUILD_URL="${{ inputs.build-url }}"
+        JENKINS_URL="${{ inputs.jenkins-url }}"
         STAGE_NAME="${{ inputs.stage-name }}"
         JENKINS_TOKEN="${{ inputs.jenkins-basic-auth }}"
         POLL_TIME=${{ inputs.poll-time }}
@@ -59,7 +63,6 @@ runs:
                   echo "Job Status"
                   echo "building: " ${BASH_REMATCH[1]} ;
                   echo "result: " ${BASH_REMATCH[2]} ;
-                  echo $JOBSTATUSJSONWFAPI | jq . ;
                 fi
                 BUILDING=${BASH_REMATCH[1]} ;
                 RESULT=${BASH_REMATCH[2]} ;
@@ -67,6 +70,13 @@ runs:
                 if [[ $(echo $STAGE_JSON | jq -r '.status') != "IN_PROGRESS" ]]; then
                   BUILDING="false"
                   RESULT=$(echo $STAGE_JSON | jq -r '.status')
+                fi
+
+                if [[ $VERBOSE == true ]]; then
+                  echo "final building: " ${BUILDING} ;
+                  echo "final result: " ${RESULT} ;
+                  echo $JOBSTATUSJSONWFAPI | jq . ;
+                  echo $STAGE_JSON | jq . ;
                 fi
 
             else
@@ -81,6 +91,7 @@ runs:
             sleep $POLL_TIME
 
         done 
+        
         #Once I reach here, building is false, so the job isn't running any longer
         #Therefor, we can check the result
         case $RESULT in
@@ -106,7 +117,6 @@ runs:
         echo "--------------------------------------"
 
         exit $EXIT_CODE
-
       shell: bash
 branding:
   icon: 'arrow-down-circle'
