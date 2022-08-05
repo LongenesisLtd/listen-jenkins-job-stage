@@ -1,0 +1,114 @@
+name: 'Listen to Jenkins Job Stage and Return Result'
+description: 'listen to specific jenkins job stage and return result'
+inputs:
+  build-url:  # URL of the jenkins job build
+    description: 'URL of the jenkins job build'
+    required: true
+  stage-name: # The name of the jenkins stage to listen
+    description: 'The name of the jenkins stage to listen'
+    required: true
+  jenkins-basic-auth: # basic auth for jenkins
+    description: 'basic auth for jenkins, can use token or password for second part. Store this in a secret for security'
+    required: true
+  poll-time: # how often to poll the jenkins server for results
+    description: 'How often (seconds) to poll the jenkins server for results'
+    required: false
+    default: 10
+  verbose: # true/false - turns on verbose logging
+    description: 'true/false - turns on verbose logging'
+    required: false
+    default: false
+  
+runs:
+  using: "composite"
+  steps:
+    - id: trigger-jenkins-job-using-api
+      run: |
+        #Parameters
+        BUILD_URL="${{ inputs.jenkins-url }}"
+        STAGE_NAME="${{ inputs.stage-name }}"
+        JENKINS_TOKEN="${{ inputs.jenkins-basic-auth }}"
+        POLL_TIME=${{ inputs.poll-time }}
+        VERBOSE=${{ inputs.verbose }}
+        JUST_TRIGGER=${{ inputs.just-trigger }}
+
+        #Potential Values: https://javadoc.jenkins-ci.org/hudson/model/Result.html
+        #SUCCESS - Build had no errors
+        #UNSTABLE - Build had some errors but they were not fatal
+        #FAILURE - Build had a fatal error
+        #NOT_BUILT - Module was not build
+        #ABORTED - Manually aborted
+        
+        # initial status
+        BUILDING="true"
+        while [ "$BUILDING" == "true" ]
+        do 
+
+            #Get the status
+            echo "Query Build Job Status"
+            echo "--------------------------------------"
+            JOBSTATUSJSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "$BUILD_URL/api/json?pretty=true")
+            JOBSTATUSJSONWFAPI=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${BUILD_URL}wfapi/")
+
+            # getting stage 
+            STAGE_PATH=$(echo $JOBSTATUSJSONWFAPI | jq -r ".stages[] | select(.name == \"${STAGE_NAME}\") | ._links.self.href")
+            STAGE_JSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_PATH}")
+
+            regex="\"building\"\s*:\s*([a-z]+).*?\"result\"\s*:\s*\"?([a-zA-Z]+)\"?."
+            if [[ $JOBSTATUSJSON =~ $regex ]]; then
+                if [[ $VERBOSE == true ]]; then
+                  echo "Job Status"
+                  echo "building: " ${BASH_REMATCH[1]} ;
+                  echo "result: " ${BASH_REMATCH[2]} ;
+                  echo $JOBSTATUSJSONWFAPI | jq . ;
+                fi
+                BUILDING=${BASH_REMATCH[1]} ;
+                RESULT=${BASH_REMATCH[2]} ;
+
+                if [[ $(echo $STAGE_JSON | jq -r '.status') != "IN_PROGRESS" ]]; then
+                  BUILDING="false"
+                  RESULT=$(echo $STAGE_JSON | jq -r '.status')
+                fi
+
+            else
+                echo "Build status NOT FOUND. Exiting script with error"
+                echo "--------------------------------------"
+                exit 1 
+            fi
+
+            #WAIT POLL_TIME SECONDS
+            echo "pause for $POLL_TIME seconds"
+            echo "--------------------------------------"
+            sleep $POLL_TIME
+
+        done 
+        #Once I reach here, building is false, so the job isn't running any longer
+        #Therefor, we can check the result
+        case $RESULT in
+            SUCCESS)
+                echo "Build completed successfully!"
+                EXIT_CODE=0
+                ;;
+            *)
+                echo "Build DID NOT COMPLETE successfully"
+                EXIT_CODE=1
+                ;;
+        esac
+
+        echo "Dumping logs"
+        
+        # dropping jenkins log for this stage
+        
+        echo "Stage complete dumping log"
+        for STAGE_FLOW_NODE_LOG in $(echo $STAGE_JSON | jq -r '.stageFlowNodes[]._links.log.href'); do
+            LOG_TEXT=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_FLOW_NODE_LOG}")
+            echo $LOG_TEXT | jq -r .text
+        done
+        echo "--------------------------------------"
+
+        exit EXIT_CODE
+
+      shell: bash
+branding:
+  icon: 'arrow-down-circle'
+  color: 'gray-dark'
