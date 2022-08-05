@@ -30,7 +30,6 @@ runs:
         JENKINS_TOKEN="${{ inputs.jenkins-basic-auth }}"
         POLL_TIME=${{ inputs.poll-time }}
         VERBOSE=${{ inputs.verbose }}
-        JUST_TRIGGER=${{ inputs.just-trigger }}
 
         #Potential Values: https://javadoc.jenkins-ci.org/hudson/model/Result.html
         #SUCCESS - Build had no errors
@@ -106,7 +105,7 @@ runs:
         done
         echo "--------------------------------------"
 
-        exit EXIT_CODE
+        exit $EXIT_CODE
 
       shell: bash
 branding:
