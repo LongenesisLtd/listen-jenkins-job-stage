@@ -118,8 +118,6 @@ runs:
                 EXIT_CODE=1
                 ;;
         esac
-
-        echo "Dumping logs"
         
         # dropping jenkins log for this stage if stage exists 
         if [[ $STAGE_EXISTS ]]; then 
