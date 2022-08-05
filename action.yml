@@ -79,9 +79,11 @@ runs:
                 BUILDING=${BASH_REMATCH[1]} ;
                 RESULT=${BASH_REMATCH[2]} ;
 
-                if [[ $STAGE_EXISTS ]] && [[ $(echo $STAGE_JSON | jq -r '.status') != "IN_PROGRESS" ]]; then
-                  BUILDING="false"
-                  RESULT=$(echo $STAGE_JSON | jq -r '.status')
+                if [[ $STAGE_EXISTS ]]; then 
+                  if [[ $(echo $STAGE_JSON | jq -r '.status') != "IN_PROGRESS" ]]; then
+                    BUILDING="false"
+                    RESULT=$(echo $STAGE_JSON | jq -r '.status')
+                  fi
                 fi
 
                 if [[ $VERBOSE == true ]]; then
