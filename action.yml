@@ -25,7 +25,7 @@ runs:
     - id: trigger-jenkins-job-using-api
       run: |
         #Parameters
-        BUILD_URL="${{ inputs.jenkins-url }}"
+        BUILD_URL="${{ inputs.build-url }}"
         STAGE_NAME="${{ inputs.stage-name }}"
         JENKINS_TOKEN="${{ inputs.jenkins-basic-auth }}"
         POLL_TIME=${{ inputs.poll-time }}
