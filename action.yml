@@ -56,6 +56,11 @@ runs:
             # getting stage 
             STAGE_PATH=$(echo $JOBSTATUSJSONWFAPI | jq -r ".stages[] | select(.name == \"${STAGE_NAME}\") | ._links.self.href")
             STAGE_JSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_PATH}")
+            if [[ $VERBOSE == true ]]; then
+                echo "STAGE_NAME: ${STAGE_NAME}"
+                echo "STAGE_PATH: ${STAGE_PATH}"
+                echo "STAGE_JSON: ${STAGE_JSON}"
+            fi
 
             regex="\"building\"\s*:\s*([a-z]+).*?\"result\"\s*:\s*\"?([a-zA-Z]+)\"?."
             if [[ $JOBSTATUSJSON =~ $regex ]]; then
