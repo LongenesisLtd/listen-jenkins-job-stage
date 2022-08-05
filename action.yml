@@ -51,16 +51,21 @@ runs:
             echo "Query Build Job Status"
             echo "--------------------------------------"
             JOBSTATUSJSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "$BUILD_URL/api/json?pretty=true")
-            JOBSTATUSJSONWFAPI=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${BUILD_URL}wfapi/")
+            JOBSTATUSJSONWFAPI=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${BUILD_URL}/wfapi/")
 
             # getting stage 
             STAGE_PATH=$(echo $JOBSTATUSJSONWFAPI | jq -r ".stages[] | select(.name == \"${STAGE_NAME}\") | ._links.self.href")
-            STAGE_JSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_PATH}")
+            
             if [[ $VERBOSE == true ]]; then
-                echo "STAGE_NAME: ${STAGE_NAME}"
                 echo "STAGE_PATH: ${STAGE_PATH}"
-                echo "JOBSTATUSJSONWFAPI: ${JOBSTATUSJSONWFAPI}"
-                echo "STAGE_JSON: ${STAGE_JSON}"
+            fi
+
+            if [ ! -z "${STAGE_PATH}"]; then 
+              STAGE_JSON=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_PATH}")
+              STAGE_EXISTS=true
+            else 
+              STAGE_JSON=""
+              STAGE_EXISTS=false
             fi
 
             regex="\"building\"\s*:\s*([a-z]+).*?\"result\"\s*:\s*\"?([a-zA-Z]+)\"?."
@@ -73,7 +78,7 @@ runs:
                 BUILDING=${BASH_REMATCH[1]} ;
                 RESULT=${BASH_REMATCH[2]} ;
 
-                if [[ $(echo $STAGE_JSON | jq -r '.status') != "IN_PROGRESS" ]]; then
+                if [[ $STAGE_EXISTS ]] && [[ $(echo $STAGE_JSON | jq -r '.status') != "IN_PROGRESS" ]]; then
                   BUILDING="false"
                   RESULT=$(echo $STAGE_JSON | jq -r '.status')
                 fi
@@ -113,14 +118,15 @@ runs:
 
         echo "Dumping logs"
         
-        # dropping jenkins log for this stage
-        
-        echo "Stage complete dumping log"
-        for STAGE_FLOW_NODE_LOG in $(echo $STAGE_JSON | jq -r '.stageFlowNodes[]._links.log.href'); do
-            LOG_TEXT=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_FLOW_NODE_LOG}")
-            echo $LOG_TEXT | jq -r .text
-        done
-        echo "--------------------------------------"
+        # dropping jenkins log for this stage if stage exists 
+        if [[ $STAGE_EXISTS ]]; then 
+          echo "Stage complete dumping log"
+          for STAGE_FLOW_NODE_LOG in $(echo $STAGE_JSON | jq -r '.stageFlowNodes[]._links.log.href'); do
+              LOG_TEXT=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_FLOW_NODE_LOG}")
+              echo $LOG_TEXT | jq -r .text
+          done
+          echo "--------------------------------------"
+        fi
 
         exit $EXIT_CODE
       shell: bash
