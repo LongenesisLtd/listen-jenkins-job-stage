@@ -90,8 +90,10 @@ runs:
                 if [[ $VERBOSE == true ]]; then
                   echo "final building: " ${BUILDING} ;
                   echo "final result: " ${RESULT} ;
+                  echo "--------------------------------------"
                   echo $JOBSTATUSJSONWFAPI | jq . ;
                   echo $STAGE_JSON | jq . ;
+                  echo "--------------------------------------"
                 fi
 
             else
@@ -100,10 +102,12 @@ runs:
                 exit 1 
             fi
 
-            #WAIT POLL_TIME SECONDS
-            echo "pause for $POLL_TIME seconds"
-            echo "--------------------------------------"
-            sleep $POLL_TIME
+            if [ "$BUILDING" == "true" ]; then
+                #WAIT POLL_TIME SECONDS
+                echo "pause for $POLL_TIME seconds"
+                echo "--------------------------------------"
+                sleep $POLL_TIME
+            fi
 
         done 
         
