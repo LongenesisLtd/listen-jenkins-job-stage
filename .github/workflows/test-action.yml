@@ -1,0 +1,25 @@
+name: Test Jenkins Action
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+
+  testaction:
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # - uses: actions/checkout@v2
+
+      - id: testjenkinsaction
+        uses: LongenesisLtd/listen-jenkins-job-stage@v1
+        with:
+          build-url: "${{ steps.trigger_jenkins.outputs.build-url }}" # full URL of the jenkins job build
+          jenkins-url: "${{ secrets.JENKINS_URL }}" # URL of the jenkins server
+          stage-name: "build" # The name of the jenkins stage to listen
+          jenkins-basic-auth: "${{ secrets.JENKINS_TOKEN }}" # basic auth for jenkins
+          poll-time: 10 # how often to poll the jenkins server for results
+          verbose: true # true/false - turns on extra logging
