@@ -123,10 +123,12 @@ runs:
                 EXIT_CODE=1
                 ;;
         esac
+        echo "--------------------------------------"
         
         # dropping jenkins log for this stage if stage exists 
         if [[ $STAGE_EXISTS ]]; then 
           echo "Stage complete dumping log"
+          echo "--------------------------------------"
           for STAGE_FLOW_NODE_LOG in $(echo $STAGE_JSON | jq -r '.stageFlowNodes[]._links.log.href'); do
               LOG_TEXT=$(curl -s -X GET -H "Authorization: Basic ${JENKINS_TOKEN}" "${JENKINS_URL}${STAGE_FLOW_NODE_LOG}")
               echo $LOG_TEXT | jq -r .text
